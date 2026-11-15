@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMyAuthLogs = exports.getAuthLogs = exports.logoutUser = exports.loginUser = exports.registerUser = void 0;
+exports.resetPassword = exports.getMyAuthLogs = exports.getAuthLogs = exports.logoutUser = exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
@@ -41,9 +41,11 @@ const registerUser = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("Register Error:", error);
         res.status(500).json({
             success: false,
             message: "Server error",
+            error: error instanceof Error ? error.message : String(error)
         });
     }
 };
@@ -97,9 +99,11 @@ const loginUser = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("Login Error:", error);
         res.status(500).json({
             success: false,
             message: "Server error",
+            error: error instanceof Error ? error.message : String(error)
         });
     }
 };
@@ -164,3 +168,25 @@ const getMyAuthLogs = async (req, res) => {
     }
 };
 exports.getMyAuthLogs = getMyAuthLogs;
+const resetPassword = async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        if (!email || !newPassword) {
+            res.status(400).json({ success: false, message: "Please provide email and new password" });
+            return;
+        }
+        const user = await userModel_1.default.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            res.status(404).json({ success: false, message: "User not found" });
+            return;
+        }
+        user.password = newPassword;
+        await user.save();
+        res.status(200).json({ success: true, message: "Password reset successfully. You can now log in." });
+    }
+    catch (error) {
+        console.error("Reset Password Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+exports.resetPassword = resetPassword;

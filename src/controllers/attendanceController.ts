@@ -117,15 +117,10 @@ export const checkIn = async (req: any, res: Response): Promise<void> => {
 
     const attendance = await Attendance.create({
       employee: employee._id,
-      date: new Date(), // Storing current datetime as the date, but unique index on employee+date might be tricky if date includes time. Wait, the schema index is on date. Usually date should be stripped of time for index uniqueness.
-      // Let's explicitly set the date to midnight for the index.
+      date: today,
       status: "present",
       checkInTime: new Date()
     });
-
-    // Update the date to be strictly midnight to avoid unique index issues.
-    attendance.date = today;
-    await attendance.save();
 
     res.status(201).json({ success: true, message: "Checked in successfully", data: attendance });
   } catch (error: any) {

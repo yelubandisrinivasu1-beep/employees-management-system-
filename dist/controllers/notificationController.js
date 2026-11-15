@@ -21,6 +21,7 @@ const createNotification = async (req, res) => {
         res.status(201).json({ success: true, data: notification });
     }
     catch (error) {
+        console.error("Create Notification Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -33,6 +34,7 @@ const getNotifications = async (req, res) => {
         res.status(200).json({ success: true, count: notifications.length, data: notifications });
     }
     catch (error) {
+        console.error("Get Notifications Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -47,6 +49,7 @@ const markAsRead = async (req, res) => {
         res.status(200).json({ success: true, data: notification });
     }
     catch (error) {
+        console.error("Mark As Read Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -59,6 +62,7 @@ const markAllAsRead = async (req, res) => {
         res.status(200).json({ success: true, message: "All notifications marked as read" });
     }
     catch (error) {
+        console.error("Mark All As Read Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -73,6 +77,7 @@ const deleteNotification = async (req, res) => {
         res.status(200).json({ success: true, message: "Notification deleted" });
     }
     catch (error) {
+        console.error("Delete Notification Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

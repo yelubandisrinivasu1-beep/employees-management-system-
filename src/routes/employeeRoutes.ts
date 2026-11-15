@@ -4,7 +4,7 @@ import {
   getAllEmployees,
   getEmployeeById,
   deleteEmployee,
-} from "../controllers/employeeContoller";
+} from "../controllers/employeeController";
 import { protect } from "../middlewares/authMiddleware";
 import { authorize } from "../middlewares/roleMiddleware";
 

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getContactList = exports.getConversationHistory = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const messageModel_1 = __importDefault(require("../models/messageModel"));
 const userModel_1 = __importDefault(require("../models/userModel"));
 const getConversationHistory = async (req, res) => {
@@ -42,7 +43,8 @@ const getContactList = async (req, res) => {
         // If Tech Manager -> sees all users (or team)
         // If Employee -> sees all users
         // For simplicity, we just return a list of users minus the current user.
-        const users = await userModel_1.default.find({ _id: { $ne: currentUserId } }).select("name email role isActive");
+        const objectId = new mongoose_1.default.Types.ObjectId(currentUserId);
+        const users = await userModel_1.default.find({ _id: { $ne: objectId } }).select("name email role isActive");
         res.status(200).json({ success: true, data: users });
     }
     catch (error) {

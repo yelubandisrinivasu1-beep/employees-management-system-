@@ -5,9 +5,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteDepartment = exports.updateDepartment = exports.getDepartmentById = exports.getDepartments = exports.createDepartment = void 0;
 const departmentModel_1 = __importDefault(require("../models/departmentModel"));
+const userModel_1 = __importDefault(require("../models/userModel"));
 const createDepartment = async (req, res) => {
     try {
         const { departmentName, departmentCode, description, managerId } = req.body;
+        // Check if managerId exists and has role "manager"
+        const manager = await userModel_1.default.findById(managerId);
+        if (!manager || manager.role !== "manager") {
+            res.status(400).json({ success: false, message: "Invalid manager ID" });
+            return;
+        }
         const departmentExists = await departmentModel_1.default.findOne({ departmentCode });
         if (departmentExists) {
             res.status(400).json({ success: false, message: "Department code already exists" });

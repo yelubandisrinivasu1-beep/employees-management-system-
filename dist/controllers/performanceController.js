@@ -4,12 +4,49 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deletePerformance = exports.updatePerformance = exports.getPerformanceById = exports.getPerformances = exports.createPerformance = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const performanceModel_1 = __importDefault(require("../models/performanceModel"));
+const employeeModel_1 = __importDefault(require("../models/employeeModel"));
+const userModel_1 = __importDefault(require("../models/userModel"));
+const resolveEmployeeReference = async (employeeId) => {
+    if (!employeeId)
+        return undefined;
+    if (mongoose_1.default.Types.ObjectId.isValid(employeeId)) {
+        const user = await userModel_1.default.findById(employeeId);
+        if (user)
+            return user._id;
+        const employee = await employeeModel_1.default.findById(employeeId);
+        if (employee)
+            return employee.user;
+    }
+    const employee = await employeeModel_1.default.findOne({ employeeId });
+    return employee === null || employee === void 0 ? void 0 : employee.user;
+};
 const createPerformance = async (req, res) => {
     try {
         const { employeeId, month, year, rating, taskCompletionRate, attendanceRate, contributionScore, managerRemarks } = req.body;
+        let employeeRef;
+        if (mongoose_1.default.Types.ObjectId.isValid(employeeId)) {
+            const user = await userModel_1.default.findById(employeeId);
+            if (user) {
+                employeeRef = user._id;
+            }
+            else {
+                const employee = await employeeModel_1.default.findById(employeeId);
+                if (employee) {
+                    employeeRef = employee.user;
+                }
+            }
+        }
+        if (!employeeRef) {
+            employeeRef = await resolveEmployeeReference(employeeId);
+        }
+        if (!employeeRef) {
+            res.status(404).json({ success: false, message: "Employee not found" });
+            return;
+        }
         const performance = await performanceModel_1.default.create({
-            employeeId,
+            employeeId: employeeRef,
             month,
             year,
             rating,
@@ -51,6 +88,14 @@ const getPerformanceById = async (req, res) => {
 exports.getPerformanceById = getPerformanceById;
 const updatePerformance = async (req, res) => {
     try {
+        if (req.body.employeeId) {
+            const employeeRef = await resolveEmployeeReference(req.body.employeeId);
+            if (!employeeRef) {
+                res.status(404).json({ success: false, message: "Employee not found" });
+                return;
+            }
+            req.body.employeeId = employeeRef;
+        }
         const performance = await performanceModel_1.default.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true,

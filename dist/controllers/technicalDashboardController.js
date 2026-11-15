@@ -42,6 +42,7 @@ const getTechnicalManagerDashboard = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("Technical Dashboard Error:", error);
         res.status(500).json({
             success: false,
             message: error.message || "Server error",

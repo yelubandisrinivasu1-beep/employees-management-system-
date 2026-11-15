@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getEmployeeSalary = exports.generateSalary = void 0;
 const salaryModel_1 = __importDefault(require("../models/salaryModel"));
+const employeeModel_1 = __importDefault(require("../models/employeeModel"));
+const mongoose_1 = __importDefault(require("mongoose"));
 const salaryService_1 = require("../services/salaryService");
 const generateSalary = async (req, res) => {
     try {
@@ -13,6 +15,31 @@ const generateSalary = async (req, res) => {
             res.status(400).json({
                 success: false,
                 message: "Please provide employeeId, month and year",
+            });
+            return;
+        }
+        // Find the employee
+        let employee;
+        if (mongoose_1.default.Types.ObjectId.isValid(employeeId)) {
+            employee = await employeeModel_1.default.findById(employeeId);
+        }
+        else {
+            employee = await employeeModel_1.default.findOne({ employeeId });
+        }
+        if (!employee) {
+            res.status(404).json({
+                success: false,
+                message: "Employee not found",
+            });
+            return;
+        }
+        // Check permissions
+        const userRole = req.user.role;
+        const userId = req.user._id;
+        if (userRole === "employee" && employee.user.toString() !== userId) {
+            res.status(403).json({
+                success: false,
+                message: "Access denied: You can only generate your own salary",
             });
             return;
         }

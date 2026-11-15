@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware";
 import Task from "../models/taskModel";
 import Employee from "../models/employeeModel";
+import Sprint from "../models/sprintModel";
 
 export const createTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -36,6 +37,11 @@ export const createTask = async (req: AuthRequest, res: Response): Promise<void>
       sprintId,
       activityLog: [{ action: "Task Created", userId: assignedBy }],
     });
+
+    // Sync with Sprint model
+    if (sprintId) {
+      await Sprint.findByIdAndUpdate(sprintId, { $push: { tasks: task._id } });
+    }
 
     const io = req.app.get("io");
     if (io && employeeExists) {
@@ -272,7 +278,7 @@ export const updateTask = async (req: AuthRequest, res: Response): Promise<void>
       res.status(404).json({ success: false, message: "Task not found" });
       return;
     }
-
+    const oldSprintId = task.sprintId;
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -281,6 +287,18 @@ export const updateTask = async (req: AuthRequest, res: Response): Promise<void>
     if (updatedTask) {
       updatedTask.activityLog.push({ action: "Task Updated", userId });
       await updatedTask.save();
+
+      // Sync with Sprint model if sprintId changed
+      if (req.body.sprintId !== undefined && String(oldSprintId) !== String(req.body.sprintId)) {
+        // Remove from old sprint
+        if (oldSprintId) {
+          await Sprint.findByIdAndUpdate(oldSprintId, { $pull: { tasks: task._id } });
+        }
+        // Add to new sprint
+        if (req.body.sprintId) {
+          await Sprint.findByIdAndUpdate(req.body.sprintId, { $push: { tasks: task._id } });
+        }
+      }
     }
 
     const io = req.app.get("io");

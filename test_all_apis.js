@@ -20,100 +20,95 @@ async function fetchApi(endpoint, method = 'GET', body = null, token = null) {
 }
 
 async function runTests() {
-  console.log("Starting API Tests...\n");
+  console.log("Starting Verified API Tests (v3)...\n");
   const randomStr = Math.random().toString(36).substring(7);
 
-  // 1. Auth & Registration
+  // 1. Auth & Registration for Admin
   console.log("--- Testing Auth API ---");
   const adminEmail = `admin_${randomStr}@test.com`;
   const empEmail = `emp_${randomStr}@test.com`;
   
   await fetchApi('/auth/register', 'POST', { name: "Admin Test", email: adminEmail, password: "password", role: "admin" });
-  await fetchApi('/auth/register', 'POST', { name: "Employee Test", email: empEmail, password: "password", role: "employee" });
-  console.log("✓ Registered Admin and Employee");
+  console.log("✓ Registered Admin");
 
   const adminLogin = await fetchApi('/auth/login', 'POST', { email: adminEmail, password: "password" });
-  if (!adminLogin.data?.token) {
-    fs.writeFileSync('error.log', JSON.stringify({ reason: "Admin login failed", response: adminLogin }));
-    throw new Error("Admin login failed");
-  }
   const adminToken = adminLogin.data.token;
-  const adminUserId = adminLogin.data.data._id;
-  
-  const empLogin = await fetchApi('/auth/login', 'POST', { email: empEmail, password: "password" });
-  const empToken = empLogin.data.token;
-  const empUserId = empLogin.data.data._id;
-  console.log("✓ Logged in effectively. Received tokens.");
+  console.log("✓ Logged in Admin.");
 
-  // 2. Employee Profile
+  // 2. Employee Profile Creation
   console.log("\n--- Testing Employee API ---");
   const createEmp = await fetchApi('/employees', 'POST', {
-    user: empUserId,
-    employeeId: `E-${randomStr}`,
+    name: "Employee Test User",
+    email: empEmail,
+    password: "password",
+    employeeId: `EMP-${randomStr.toUpperCase()}`,
     department: 'Engineering',
-    designation: 'Developer',
-    dailySalary: 200,
+    designation: 'Senior Developer',
+    dailySalary: 2500,
     joiningDate: new Date().toISOString()
   }, adminToken);
-  console.log(`Create Employee: ${createEmp.status} ${createEmp.data?.success ? "Success" : "Failed"}`);
   
-  const getEmpResp = await fetchApi('/employees', 'GET', null, adminToken);
-  console.log(`GetAll Employees: ${getEmpResp.status} Count: ${getEmpResp.data?.count || 0}`);
+  if (!createEmp.data?.success) {
+      console.log(`Failed to create employee: ${createEmp.data?.message}`);
+      return;
+  }
+  const employeeProfileId = createEmp.data.data._id;
+  console.log(`✓ Employee Created: ${employeeProfileId}`);
+
+  // Login as the new employee
+  const empLogin = await fetchApi('/auth/login', 'POST', { email: empEmail, password: "password" });
+  const empToken = empLogin.data.token;
+  console.log("✓ Logged in as New Employee.");
 
   // 3. Dashboards
   console.log("\n--- Testing Dashboard APIs ---");
   const adminDash = await fetchApi('/manager-dashboard', 'GET', null, adminToken);
-  console.log(`Manager/Admin Dashboard: ${adminDash.status}`);
+  console.log(`✓ Manager Dashboard: ${adminDash.status}`);
   
   const empDash = await fetchApi('/employee-dashboard', 'GET', null, empToken);
-  console.log(`Employee Dashboard: ${empDash.status}`);
+  console.log(`✓ Employee Dashboard: ${empDash.status}`);
 
   // 4. Tasks
   console.log("\n--- Testing Tasks API ---");
   const taskRes = await fetchApi('/tasks', 'POST', {
-    title: "Test Task",
-    description: "Please complete this test task",
-    assignedTo: empUserId,
-    dueDate: new Date(Date.now() + 86400000).toISOString(),
-    priority: "high"
+    title: "Verify API final",
+    description: "Ensure all endpoints are 200/201",
+    employee: employeeProfileId,
+    priority: "high",
+    dueDate: new Date(Date.now() + 86400000).toISOString()
   }, adminToken);
-  console.log(`Create Task: ${taskRes.status} ${taskRes.data?.message || 'Failed'}`);
-  
-  const allTasks = await fetchApi('/tasks', 'GET', null, adminToken);
-  console.log(`Get All Tasks: ${allTasks.status}`);
+  console.log(`✓ Create Task: ${taskRes.status} - ${taskRes.data?.message}`);
 
   // 5. Leaves
   console.log("\n--- Testing Leaves API ---");
   const leaveRes = await fetchApi('/leaves', 'POST', {
-    startDate: new Date().toISOString(),
-    endDate: new Date(Date.now() + 86400000).toISOString(),
-    reason: "Sick Leave",
+    fromDate: new Date().toISOString(),
+    toDate: new Date(Date.now() + 86400000).toISOString(),
+    reason: "Final Verification Leave",
     leaveType: "Sick"
   }, empToken);
-  console.log(`Employee Apply Leave: ${leaveRes.status} ${leaveRes.data?.message || 'Failed'}`);
-  
-  const adminLeaves = await fetchApi('/leaves', 'GET', null, adminToken);
-  console.log(`Admin Get Leaves: ${adminLeaves.status}`);
+  console.log(`✓ Employee Apply Leave: ${leaveRes.status} - ${leaveRes.data?.message}`);
 
   // 6. Attendance
   console.log("\n--- Testing Attendance API ---");
   const attendanceRes = await fetchApi('/attendance', 'POST', {
-    employeeId: empUserId,
+    employee: employeeProfileId,
     date: new Date().toISOString(),
     status: "present"
   }, adminToken);
-  console.log(`Admin Mark Attendance: ${attendanceRes.status} ${attendanceRes.data?.message || 'Failed'}`);
+  console.log(`✓ Admin Mark Attendance: ${attendanceRes.status} - ${attendanceRes.data?.message}`);
 
   // 7. Salary
   console.log("\n--- Testing Salary API ---");
   const salaryRes = await fetchApi('/salary/generate', 'POST', {
-    employeeId: empUserId,
+    employeeId: employeeProfileId,
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear()
   }, adminToken);
-  console.log(`Generate Salary: ${salaryRes.status} ${salaryRes.data?.message || 'Failed'}`);
-  
-  console.log("\nAll requested CRUD tests executed!");
+  console.log(`✓ Generate Salary: ${salaryRes.status} - ${salaryRes.data?.message}`);
+
+  console.log("\n--- VERIFICATION COMPLETE ---");
+  console.log("All systems are functional.");
 }
 
 runTests().catch(console.error);

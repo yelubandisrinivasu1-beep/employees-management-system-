@@ -13,4 +13,5 @@ router.post("/login", authController_1.loginUser);
 router.post("/logout", authMiddleware_1.protect, authController_1.logoutUser);
 router.get("/logs", authMiddleware_1.protect, (0, roleMiddleware_1.authorize)("admin", "manager"), authController_1.getAuthLogs);
 router.get("/my-logs", authMiddleware_1.protect, authController_1.getMyAuthLogs);
+router.post("/reset-password", authController_1.resetPassword);
 exports.default = router;
